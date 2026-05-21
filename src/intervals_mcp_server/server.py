@@ -44,6 +44,7 @@ Usage:
 """
 
 import logging
+import os
 
 # Import API client and configuration
 from intervals_mcp_server.api.client import (
@@ -57,12 +58,38 @@ from intervals_mcp_server.mcp_instance import mcp
 from intervals_mcp_server.server_setup import setup_transport, start_server
 from intervals_mcp_server.utils.validation import validate_athlete_id
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
+DEFAULT_LOG_LEVEL = "WARNING"
+
+
+def _resolve_log_level(level_name: str | None = None) -> int:
+    """Resolve a logging level name or numeric value to a logging level."""
+    configured_level = (
+        level_name
+        or os.getenv("LOG_LEVEL")
+        or os.getenv("FASTMCP_LOG_LEVEL")
+        or DEFAULT_LOG_LEVEL
+    ).strip().upper()
+    if configured_level.isdigit():
+        return int(configured_level)
+
+    level = logging.getLevelName(configured_level)
+    if isinstance(level, int):
+        return level
+    return logging.WARNING
+
+
+def _configure_logging() -> None:
+    """Configure application and MCP library logging."""
+    log_level = _resolve_log_level()
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler()],
+    )
+    logging.getLogger("mcp").setLevel(log_level)
+
+
+_configure_logging()
 logger = logging.getLogger("intervals_icu_mcp_server")
 
 # Get configuration instance

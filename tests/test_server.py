@@ -18,6 +18,7 @@ The tests ensure that the server's public API returns expected strings and handl
 
 import asyncio
 import inspect
+import logging
 import os
 import pathlib
 import sys
@@ -45,8 +46,37 @@ from intervals_mcp_server.server import (  # pylint: disable=wrong-import-positi
     delete_custom_item,
     delete_event,
     delete_events_by_date_range,
+    _resolve_log_level,
 )
 from tests.sample_data import INTERVALS_DATA, POWER_CURVES_DATA  # pylint: disable=wrong-import-position
+
+
+def test_resolve_log_level_defaults_to_warning(monkeypatch):
+    """Default logging should suppress normal FastMCP INFO request logs."""
+    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    monkeypatch.delenv("FASTMCP_LOG_LEVEL", raising=False)
+
+    assert _resolve_log_level() == logging.WARNING
+
+
+def test_resolve_log_level_uses_env(monkeypatch):
+    """LOG_LEVEL should allow debug logging when explicitly requested."""
+    monkeypatch.setenv("LOG_LEVEL", "INFO")
+
+    assert _resolve_log_level() == logging.INFO
+
+
+def test_resolve_log_level_uses_fastmcp_env(monkeypatch):
+    """FASTMCP_LOG_LEVEL remains supported for SSE and FastMCP-style configs."""
+    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    monkeypatch.setenv("FASTMCP_LOG_LEVEL", "DEBUG")
+
+    assert _resolve_log_level() == logging.DEBUG
+
+
+def test_resolve_log_level_falls_back_for_invalid_values():
+    """Invalid LOG_LEVEL values should keep the server quiet and usable."""
+    assert _resolve_log_level("not-a-level") == logging.WARNING
 
 
 def test_tool_signatures_do_not_expose_credentials():

@@ -184,7 +184,7 @@ mcp install src/intervals_mcp_server/server.py --name "Intervals.icu" --with-edi
         "INTERVALS_API_BASE_URL": "https://intervals.icu/api/v1",
         "ATHLETE_ID": "<YOUR_ATHLETE_ID>",
         "API_KEY": "<YOUR_API_KEY>",
-        "LOG_LEVEL": "INFO"
+        "LOG_LEVEL": "WARNING"
       }
     }
   }
@@ -232,7 +232,7 @@ The `mcp install` command may fail on Windows due to environment or permission i
         "INTERVALS_API_BASE_URL": "https://intervals.icu/api/v1",
         "ATHLETE_ID": "<YOUR_ATHLETE_ID>",
         "API_KEY": "<YOUR_API_KEY>",
-        "LOG_LEVEL": "INFO"
+        "LOG_LEVEL": "WARNING"
       }
     }
   }
@@ -311,6 +311,7 @@ mcp run src/intervals_mcp_server/server.py
 #### Enabling debug logging
 
 To capture server logs for debugging, wrap the command in a shell and redirect stderr to a file.
+The default `LOG_LEVEL` is `WARNING`; set it to `INFO` or `DEBUG` when you want request-level logs.
 
 **macOS/Linux** — modify your `claude_desktop_config.json` like this:
 

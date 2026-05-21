@@ -378,12 +378,97 @@ def format_wellness_entry(entries: dict[str, Any], include_all_fields: bool = Fa
     return "\n".join(lines)
 
 
+def _resolve_event_type(event: dict[str, Any]) -> str:
+    event_type = event.get("type")
+    if event_type:
+        return str(event_type)
+
+    workout = event.get("workout")
+    if isinstance(workout, dict) and workout.get("sport"):
+        return str(workout["sport"])
+
+    category = event.get("category")
+    if category:
+        return _format_event_category(str(category))
+
+    if event.get("race"):
+        return "Race"
+    if workout:
+        return "Workout"
+    return "Other"
+
+
+def _format_event_category(category: str) -> str:
+    category_labels = {
+        "WORKOUT": "Workout",
+        "RACE_A": "Race A",
+        "RACE_B": "Race B",
+        "RACE_C": "Race C",
+        "NOTE": "Note",
+        "PLAN": "Plan",
+        "HOLIDAY": "Holiday",
+        "SICK": "Sick",
+        "INJURED": "Injured",
+        "SET_EFTP": "Set eFTP",
+        "FITNESS_DAYS": "Fitness Days",
+        "SEASON_START": "Season Start",
+        "TARGET": "Target",
+        "SET_FITNESS": "Set Fitness",
+    }
+    return category_labels.get(category, category.replace("_", " ").title())
+
+
+def _resolve_event_date(event: dict[str, Any]) -> str:
+    return str(event.get("start_date_local", event.get("date", "Unknown")))
+
+
+def _format_training_availability(value: Any) -> str:
+    availability_labels = {
+        "NORMAL": "Available to train",
+        "LIMITED": "Limited",
+        "UNAVAILABLE": "Unavailable",
+    }
+    value_text = str(value)
+    return availability_labels.get(value_text, value_text.replace("_", " ").title())
+
+
+def _format_seconds(value: Any) -> str:
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{_format_duration_label(seconds)} ({seconds} seconds)"
+
+
+def _format_event_availability(event: dict[str, Any]) -> str:
+    lines: list[str] = []
+
+    training_availability = event.get("training_availability")
+    if training_availability is not None:
+        lines.append(f"Training Availability: {_format_training_availability(training_availability)}")
+
+    max_training_time = event.get("max_training_time")
+    if max_training_time is not None:
+        lines.append(f"Max Training Time: {_format_seconds(max_training_time)}")
+
+    can_train_sports = event.get("can_train_sports")
+    if can_train_sports:
+        if isinstance(can_train_sports, list):
+            sports = ", ".join(str(sport) for sport in can_train_sports)
+        else:
+            sports = str(can_train_sports)
+        lines.append(f"Can Train Sports: {sports}")
+
+    if not lines:
+        return ""
+    return "\n" + "\n".join(lines)
+
+
 def format_event_summary(event: dict[str, Any]) -> str:
     """Format a basic event summary into a readable string."""
 
-    # Update to check for "date" if "start_date_local" is not provided
-    event_date = event.get("start_date_local", event.get("date", "Unknown"))
-    event_type = "Workout" if event.get("workout") else "Race" if event.get("race") else "Other"
+    event_date = _resolve_event_date(event)
+    event_type = _resolve_event_type(event)
     event_name = event.get("name", "Unnamed")
     event_id = event.get("id", "N/A")
     event_desc = event.get("description", "No description")
@@ -392,7 +477,7 @@ def format_event_summary(event: dict[str, Any]) -> str:
 ID: {event_id}
 Type: {event_type}
 Name: {event_name}
-Description: {event_desc}"""
+Description: {event_desc}{_format_event_availability(event)}"""
 
 
 def format_event_details(event: dict[str, Any]) -> str:
@@ -401,9 +486,16 @@ def format_event_details(event: dict[str, Any]) -> str:
     event_details = f"""Event Details:
 
 ID: {event.get("id", "N/A")}
-Date: {event.get("date", "Unknown")}
+Date: {_resolve_event_date(event)}
+Type: {_resolve_event_type(event)}
 Name: {event.get("name", "Unnamed")}
 Description: {event.get("description", "No description")}"""
+
+    if event.get("end_date_local"):
+        event_details += f"""
+End Date: {event["end_date_local"]}"""
+
+    event_details += _format_event_availability(event)
 
     # Check if it's a workout-based event
     if "workout" in event and event["workout"]:

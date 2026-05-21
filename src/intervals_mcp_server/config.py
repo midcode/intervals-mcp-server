@@ -6,6 +6,7 @@ This module handles loading and validation of configuration from environment var
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from intervals_mcp_server.utils.validation import validate_athlete_id
 
@@ -13,7 +14,8 @@ from intervals_mcp_server.utils.validation import validate_athlete_id
 try:
     from dotenv import load_dotenv
 
-    _ = load_dotenv()
+    repo_env = Path(__file__).resolve().parents[2] / ".env"
+    _ = load_dotenv(dotenv_path=repo_env if repo_env.exists() else None)
 except ImportError:
     # python-dotenv not installed, proceed without it
     pass

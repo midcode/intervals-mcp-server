@@ -155,6 +155,39 @@ def test_format_event_summary():
     assert "Type: Race" in summary
 
 
+def test_format_event_summary_uses_intervals_event_type():
+    """
+    Test that format_event_summary renders the native Intervals.icu event type.
+    """
+    event = {
+        "start_date_local": "2024-01-01T00:00:00",
+        "id": "e1",
+        "name": "Easy Run",
+        "description": "desc",
+        "category": "WORKOUT",
+        "type": "Run",
+    }
+    summary = format_event_summary(event)
+    assert "Type: Run" in summary
+    assert "Type: Other" not in summary
+
+
+def test_format_event_summary_uses_event_category():
+    """
+    Test that format_event_summary renders non-workout event categories.
+    """
+    event = {
+        "start_date_local": "2026-08-31T00:00:00",
+        "id": 96311449,
+        "name": "Urlaub",
+        "description": None,
+        "category": "HOLIDAY",
+    }
+    summary = format_event_summary(event)
+    assert "Type: Holiday" in summary
+    assert "Type: Other" not in summary
+
+
 def test_format_event_details():
     """
     Test that format_event_details returns a string containing event and workout details.
@@ -179,6 +212,64 @@ def test_format_event_details():
     details = format_event_details(event)
     assert "Event Details:" in details
     assert "Workout Information:" in details
+
+
+def test_format_event_details_uses_intervals_event_type():
+    """
+    Test that format_event_details renders the native Intervals.icu event type.
+    """
+    event = {
+        "id": "e1",
+        "date": "2024-01-01",
+        "name": "Endurance Ride",
+        "description": "desc",
+        "category": "WORKOUT",
+        "type": "Ride",
+    }
+    details = format_event_details(event)
+    assert "Type: Ride" in details
+    assert "Type: Other" not in details
+
+
+def test_format_event_details_uses_start_date_local():
+    """
+    Test that format_event_details renders Intervals.icu event start_date_local values.
+    """
+    event = {
+        "id": "e1",
+        "start_date_local": "2024-01-01T00:00:00",
+        "name": "Endurance Ride",
+        "description": "desc",
+        "category": "WORKOUT",
+        "type": "Ride",
+    }
+    details = format_event_details(event)
+    assert "Date: 2024-01-01T00:00:00" in details
+    assert "Date: Unknown" not in details
+
+
+def test_format_event_details_includes_holiday_training_availability():
+    """
+    Test that format_event_details renders Holiday training availability fields.
+    """
+    event = {
+        "id": 96311449,
+        "start_date_local": "2026-08-31T00:00:00",
+        "end_date_local": "2026-09-06T00:00:00",
+        "name": "Urlaub",
+        "description": None,
+        "category": "HOLIDAY",
+        "training_availability": "LIMITED",
+        "max_training_time": 5400,
+        "can_train_sports": ["Ride", "Run"],
+    }
+    details = format_event_details(event)
+    assert "Type: Holiday" in details
+    assert "Type: Other" not in details
+    assert "End Date: 2026-09-06T00:00:00" in details
+    assert "Training Availability: Limited" in details
+    assert "Max Training Time: 1h30m (5400 seconds)" in details
+    assert "Can Train Sports: Ride, Run" in details
 
 
 def test_format_intervals():

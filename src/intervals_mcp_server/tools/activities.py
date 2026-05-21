@@ -49,7 +49,6 @@ def _filter_named_activities(activities: list[dict[str, Any]]) -> list[dict[str,
 async def _fetch_more_activities(
     athlete_id: str,
     start_date: str,
-    api_key: str | None,
     api_limit: int,
 ) -> list[dict[str, Any]]:
     """Fetch additional activities from an earlier date range."""
@@ -67,7 +66,6 @@ async def _fetch_more_activities(
     }
     more_result = await make_intervals_request(
         url=f"/athlete/{athlete_id}/activities",
-        api_key=api_key,
         params=more_params,
     )
 
@@ -102,8 +100,6 @@ def _format_activities_response(
 
 @mcp.tool()
 async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-statements,too-many-branches,too-many-positional-arguments
-    athlete_id: str | None = None,
-    api_key: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     limit: int = 10,
@@ -112,15 +108,13 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
     """Get a list of activities for an athlete from Intervals.icu
 
     Args:
-        athlete_id: The Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
         start_date: Start date in YYYY-MM-DD format (optional, defaults to 30 days ago)
         end_date: End date in YYYY-MM-DD format (optional, defaults to today)
         limit: Maximum number of activities to return (optional, defaults to 10)
         include_unnamed: Whether to include unnamed activities (optional, defaults to False)
     """
     # Resolve athlete ID and date parameters
-    athlete_id_to_use, error_msg = resolve_athlete_id(athlete_id, config.athlete_id)
+    athlete_id_to_use, error_msg = resolve_athlete_id(None, config.athlete_id)
     if error_msg:
         return error_msg
 
@@ -132,7 +126,7 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
     # Call the Intervals.icu API
     params = {"oldest": start_date, "newest": end_date, "limit": api_limit}
     result = await make_intervals_request(
-        url=f"/athlete/{athlete_id_to_use}/activities", api_key=api_key, params=params
+        url=f"/athlete/{athlete_id_to_use}/activities", params=params
     )
 
     # Check for error
@@ -156,7 +150,7 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
         # If we don't have enough named activities, try to fetch more
         if len(activities) < limit:
             more_activities = await _fetch_more_activities(
-                athlete_id_to_use, start_date, api_key, api_limit
+                athlete_id_to_use, start_date, api_limit
             )
             activities.extend(more_activities)
 
@@ -167,15 +161,14 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
 
 
 @mcp.tool()
-async def get_activity_details(activity_id: str, api_key: str | None = None) -> str:
+async def get_activity_details(activity_id: str) -> str:
     """Get detailed information for a specific activity from Intervals.icu
 
     Args:
         activity_id: The Intervals.icu activity ID
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
     """
     # Call the Intervals.icu API
-    result = await make_intervals_request(url=f"/activity/{activity_id}", api_key=api_key)
+    result = await make_intervals_request(url=f"/activity/{activity_id}")
 
     if isinstance(result, dict) and "error" in result:
         error_message = result.get("message", "Unknown error")
@@ -208,7 +201,7 @@ async def get_activity_details(activity_id: str, api_key: str | None = None) -> 
 
 
 @mcp.tool()
-async def get_activity_intervals(activity_id: str, api_key: str | None = None) -> str:
+async def get_activity_intervals(activity_id: str) -> str:
     """Get interval data for a specific activity from Intervals.icu
 
     This endpoint returns detailed metrics for each interval in an activity, including power, heart rate,
@@ -216,10 +209,9 @@ async def get_activity_intervals(activity_id: str, api_key: str | None = None) -
 
     Args:
         activity_id: The Intervals.icu activity ID
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
     """
     # Call the Intervals.icu API
-    result = await make_intervals_request(url=f"/activity/{activity_id}/intervals", api_key=api_key)
+    result = await make_intervals_request(url=f"/activity/{activity_id}/intervals")
 
     if isinstance(result, dict) and "error" in result:
         error_message = result.get("message", "Unknown error")
@@ -242,7 +234,6 @@ async def get_activity_intervals(activity_id: str, api_key: str | None = None) -
 @mcp.tool()
 async def get_activity_streams(
     activity_id: str,
-    api_key: str | None = None,
     stream_types: str | None = None,
 ) -> str:
     """Get stream data for a specific activity from Intervals.icu
@@ -252,7 +243,6 @@ async def get_activity_streams(
 
     Args:
         activity_id: The Intervals.icu activity ID
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
         stream_types: Comma-separated list of stream types to retrieve (optional, defaults to all available types)
                      Available types: time, watts, heartrate, cadence, altitude, distance,
                      core_temperature, skin_temperature, velocity_smooth
@@ -268,7 +258,6 @@ async def get_activity_streams(
     # Call the Intervals.icu API
     result = await make_intervals_request(
         url=f"/activity/{activity_id}/streams",
-        api_key=api_key,
         params=params,
     )
 
@@ -318,16 +307,14 @@ async def get_activity_streams(
 
 
 @mcp.tool()
-async def get_activity_messages(activity_id: str, api_key: str | None = None) -> str:
+async def get_activity_messages(activity_id: str) -> str:
     """Get messages (notes/comments) for a specific activity from Intervals.icu
 
     Args:
         activity_id: The Intervals.icu activity ID
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
     """
     result = await make_intervals_request(
         url=f"/activity/{activity_id}/messages",
-        api_key=api_key,
     )
 
     if isinstance(result, dict) and "error" in result:
@@ -353,18 +340,15 @@ async def get_activity_messages(activity_id: str, api_key: str | None = None) ->
 async def add_activity_message(
     activity_id: str,
     content: str,
-    api_key: str | None = None,
 ) -> str:
     """Add a message (note/comment) to an activity on Intervals.icu
 
     Args:
         activity_id: The Intervals.icu activity ID
         content: The message text to add
-        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
     """
     result = await make_intervals_request(
         url=f"/activity/{activity_id}/messages",
-        api_key=api_key,
         method="POST",
         data={"content": content},
     )

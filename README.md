@@ -79,6 +79,8 @@ API_KEY=your_intervals_api_key_here
 ATHLETE_ID=your_athlete_id_here
 ```
 
+The MCP tools read these values from the server environment. You do not need to pass `api_key` or `athlete_id` when calling tools.
+
 #### Getting your Intervals.icu API Key
 
 1. Log in to your Intervals.icu account
